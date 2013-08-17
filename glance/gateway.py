@@ -61,3 +61,15 @@ class Gateway(object):
         authorized_image_repo = authorization.ImageRepoProxy(
                 notifier_image_repo, context)
         return authorized_image_repo
+
+    def get_task_factory(self, context):
+        task_factory = glance.domain.TaskFactory()
+        policy_task_factory = policy.TaskFactoryProxy(
+                task_factory, context, self.policy)
+        return policy_task_factory
+
+    def get_task_repo(self, context):
+        task_repo = glance.db.TaskRepo(context, self.db_api)
+        policy_task_repo = policy.TaskRepoProxy(
+                task_repo, context, self.notifier)
+        return policy_task_repo

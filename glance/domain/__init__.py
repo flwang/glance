@@ -54,7 +54,6 @@ class ImageFactory(object):
         created_at = timeutils.utcnow()
         updated_at = created_at
         status = 'queued'
-
         return Image(image_id=image_id, name=name, status=status,
                      created_at=created_at, updated_at=updated_at,
                      visibility=visibility, min_disk=min_disk,
@@ -169,3 +168,77 @@ class ImageMemberFactory(object):
         return ImageMembership(image_id=image.image_id, member_id=member_id,
                                created_at=created_at, updated_at=updated_at,
                                status='pending')
+
+
+class Task(object):
+    def __init__(self, task_id, status, message, request, parameters,
+                 result, created_at, updated_at, started_at, stopped_at,
+                 runner=None):
+        if status not in ('pending', 'success', 'failure', 'inprogress'):
+            raise exception.InvalidTaskStatus(status)
+        self.task_id = task_id
+        self.request = request
+        self.parameters = parameters
+        self.result = result
+        self._status = status
+        self.type = 'Fake'
+        self.owner = None
+        self.message = message
+        self.created_at = created_at
+        self.updated_at = updated_at
+        self.started_at = started_at  # time of transition to in progress
+        self.stopped_at = stopped_at  # time of transition to success/failure
+        self._runner = runner
+
+    @property
+    def status(self):
+        return self._status
+
+    def start(self):
+        self._status = 'inprogress'
+        self.started_at = timeutils.utcnow()
+        self._runner.run(self)
+
+    def kill(self, message=None):
+        self._status = 'failure'
+        self.message = message or _('Task was forced to quit.')
+        self._runner.kill(self)
+
+    def complete(self, result):
+        self._status = 'success'
+        self.result = result
+        self.stopped_at = timeutils.utcnow()
+
+    def fail(self, message):
+        self._status = 'failure'
+        self.message = message
+        self.stopped_at = timeutils.utcnow()
+
+
+class TaskFactory(object):
+    def new_task(self, request, task):
+        if not request:
+            raise TypeError('new_task() takes at least one argument'
+                            ' (\'request\')')
+
+        task_id = uuidutils.generate_uuid()
+        status = 'pending'
+        message = None
+        parameters = {}
+        result = None
+        created_at = timeutils.utcnow()
+        updated_at = created_at
+        started_at = None
+        stopped_at = None
+        runner = TaskRunnerInterface()
+        return Task(task_id, status, message, request, parameters,
+                    result, created_at, updated_at, started_at, stopped_at,
+                    runner)
+
+
+class TaskRunnerInterface(object):
+    def run(self, task):
+        pass
+
+    def kill(self, task):
+        pass

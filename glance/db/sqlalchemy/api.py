@@ -1017,3 +1017,54 @@ def image_tag_get_all(context, image_id, session=None):
                   .order_by(sqlalchemy.asc(models.ImageTag.created_at))\
                   .all()
     return [tag['value'] for tag in tags]
+
+
+def task_create(context, values, session=None):
+    """Create a task object"""
+    task_ref = models.Task()
+    _task_update(context, task_ref, values, session=session)
+    return _task_format(task_ref)
+
+
+def task_update(context, task_id, values, purge_props=False):
+    """Update a task object"""
+    session = _get_session()
+    task_ref = _task_get(context, task_id, session)
+    _task_update(context, task_ref, values, session)
+    return _task_format(task_ref)
+
+
+def task_get(context, task_id, session=None):
+    """Fetch an task entity by id"""
+    task_ref = _task_get(context, task_id, session=session)
+    return _task_format(task_ref)
+
+
+def _task_get(context, task_id, session):
+    """Fetch an task entity by id"""
+    session = session or _get_session()
+    query = session.query(models.Task)
+    query = query.filter_by(id=task_id)
+    return query.one()
+
+
+def _task_update(context, task_ref, values, session=None):
+    """Apply supplied dictionary of values to a task object."""
+    values["deleted"] = False
+    task_ref.update(values)
+    task_ref.save(session=session)
+    return task_ref
+
+
+def _task_format(task_ref):
+    """Format a task ref for consumption outside of this module"""
+    return {
+        'id': task_ref['id'],
+        'type': task_ref['type'],
+        'status': task_ref['status'],
+        'owner': task_ref['owner'],
+        'expires_at': task_ref['expires_at'],
+        'message': task_ref['message'],
+        'created_at': task_ref['created_at'],
+        'updated_at': task_ref['updated_at']
+    }

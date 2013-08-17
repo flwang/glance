@@ -130,3 +130,32 @@ class Image(object):
 
     def get_member_repo(self):
         return self.helper.proxy(self.base.get_member_repo())
+
+
+class Task(object):
+    def __init__(self, base, image_repo_proxy_class=None,
+                 image_repo_proxy_kwargs=None):
+        self.base = base
+        self.helper = Helper(image_repo_proxy_class, image_repo_proxy_kwargs)
+
+    task_id = _proxy('base', 'task_id')
+    type = _proxy('base', 'type')
+    status = _proxy('base', 'status')
+    created_at = _proxy('base', 'created_at')
+    updated_at = _proxy('base', 'updated_at')
+    expires_at = _proxy('base', 'expires_at')
+    owner = _proxy('base', 'owner')
+    message = _proxy('base', 'message')
+
+    def kill(self):
+        self.base.delete()
+
+
+class TaskFactory(object):
+    def __init__(self, base, proxy_class=None, proxy_kwargs=None):
+        self.helper = Helper(proxy_class, proxy_kwargs)
+        self.base = base
+
+    def new_task(self, req, task):
+        t = self.base.new_task(req, task)
+        return self.helper.proxy(t)

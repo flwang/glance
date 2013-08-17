@@ -260,3 +260,59 @@ class ImageMemberRepo(object):
         image_member = self._format_image_member_from_db(
                                                     db_api_image_member[0])
         return image_member
+
+
+class TaskRepo(object):
+
+    def _format_task_from_db(self, db_task):
+        return glance.domain.Task(
+            task_id=db_task['id'],
+            status=db_task['status'],
+            message=db_task['message'],
+            request=None,
+            parameters=None,
+            result=None,
+            created_at=db_task['created_at'],
+            updated_at=db_task['updated_at'],
+            started_at=db_task['created_at'],
+            stopped_at=db_task['updated_at'],
+            runner=None
+        )
+
+    def _format_task_to_db(self, task):
+        task = {'task_id': task.task_id,
+                'type': task.type,
+                'status': task.status,
+                'owner': task.owner,
+                'created_at': task.created_at,
+                'updated_at': task.updated_at}
+        return task
+
+    def __init__(self, context, db_api):
+        self.context = context
+        self.db_api = db_api
+
+    def get(self, task_id):
+        try:
+            db_api_task = self.db_api.task_get(self.context, task_id)
+            if not db_api_task:
+                raise exception.NotFound()
+        except (exception.NotFound, exception.Forbidden):
+            raise exception.NotFound()
+        task = self._format_task_from_db(db_api_task)
+        return task
+
+    def list(self, marker=None, limit=None, sort_key='created_at',
+             sort_dir='desc', filters=None):
+        pass
+
+    def kill(self, task_id):
+        pass
+
+    def add(self, task):
+        task_values = self._format_task_to_db(task)
+        task_values['updated_at'] = task.updated_at
+        new_values = self.db_api.task_create(self.context, task_values)
+        task.created_at = new_values['created_at']
+        task.updated_at = new_values['updated_at']
+        return self._format_task_from_db(new_values)

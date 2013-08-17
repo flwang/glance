@@ -20,6 +20,7 @@ from glance.api.v2 import image_members
 from glance.api.v2 import image_tags
 from glance.api.v2 import images
 from glance.api.v2 import schemas
+from glance.api.v2 import tasks
 from glance.common import wsgi
 
 
@@ -106,6 +107,24 @@ class API(wsgi.Router):
         mapper.connect('/images/{image_id}/members/{member_id}',
                        controller=image_members_resource,
                        action='delete',
+                       conditions={'method': ['DELETE']})
+
+        tasks_resource = tasks.create_resource()
+        mapper.connect('/tasks',
+                       controller=tasks_resource,
+                       action='create',
+                       conditions={'method': ['POST']})
+        mapper.connect('/tasks',
+                       controller=tasks_resource,
+                       action='index',
+                       conditions={'method': ['GET']})
+        mapper.connect('/tasks/{task_id}',
+                       controller=tasks_resource,
+                       action='get',
+                       conditions={'method': ['GET']})
+        mapper.connect('/tasks/{task_id}',
+                       controller=tasks_resource,
+                       action='kill',
                        conditions={'method': ['DELETE']})
 
         super(API, self).__init__(mapper)
